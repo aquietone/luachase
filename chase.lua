@@ -1,5 +1,5 @@
 --[[
-chase.lua 1.0 -- aquietone
+chase.lua 1.0.1 -- aquietone
 
 Commands:
 - /luachase pause on|1|true -- pause chasing
@@ -72,7 +72,7 @@ local function do_chase()
     local chase_y = chase_spawn.Y()
     if not chase_x or not chase_y then return end
     if check_distance(me_x, me_y, chase_x, chase_y) > DISTANCE then
-        if not mq.TLO.Nav.Active() then
+        if not mq.TLO.Nav.Active() and mq.TLO.Navigation.PathExists(string.format('spawn pc =%s', chase_spawn.CleanName())) then
             mq.cmdf('/nav spawn pc =%s | dist=10 log=off', chase_spawn.CleanName())
         end
     end
@@ -91,7 +91,7 @@ local function draw_combo_box(resultvar, options)
 end
 
 local function chase_ui()
-    if not open_gui then return end
+    if not open_gui or mq.TLO.MacroQuest.GameState() ~= 'INGAME' then return end
     open_gui, should_draw_gui = ImGui.Begin('Chase', open_gui)
     if should_draw_gui then
         if PAUSED then
@@ -119,7 +119,7 @@ mq.imgui.init('Chase', chase_ui)
 
 local function print_help()
     print('Lua Chase 1.0 -- Available Commands:')
-    print('\t/luachase role ma|mt|leader|raid1|raid2|raid3\n\t/luachase target\n\t/luachase name [pc_name_to_chase]\n\t/luachase distance [10,300]\n\t/luachase pause on|1|true\n\t/luachase pause off|0|false')
+    print('\t/luachase role ma|mt|leader|raid1|raid2|raid3\n\t/luachase target\n\t/luachase name [pc_name_to_chase]\n\t/luachase distance [10,300]\n\t/luachase pause on|1|true\n\t/luachase pause off|0|false\n\t/luachase show\n\t/luachase hide')
 end
 
 local function bind_chase(...)
@@ -181,6 +181,8 @@ if args[1] then
 end
 
 while true do
-    do_chase()
+    if mq.TLO.MacroQuest.GameState() == 'INGAME' then
+        do_chase()
+    end
     mq.delay(50)
 end
