@@ -1,5 +1,5 @@
 --[[
-chase.lua 1.0.1 -- aquietone
+chase.lua 1.0.2 -- aquietone
 
 Commands:
 - /luachase pause on|1|true -- pause chasing
@@ -25,7 +25,7 @@ local DISTANCE = 30
 local open_gui = true
 local should_draw_gui = true
 
-local ROLES = {[1]='none',none=1,[2]='ma',ma=1,[3]='mq',mt=1,[4]='leader',leader=1,[5]='raid1',raid1=1,[6]='raid2',raid2=1,[7]='raid3',raid3=1}
+local ROLES = {[1]='none',none=1,[2]='ma',ma=1,[3]='mt',mt=1,[4]='leader',leader=1,[5]='raid1',raid1=1,[6]='raid2',raid2=1,[7]='raid3',raid3=1}
 local ROLE = 'none'
 
 local function validate_distance(distance)
