@@ -85,6 +85,16 @@ local function do_chase()
     end
 end
 
+local function helpMarker(desc)
+    if ImGui.IsItemHovered() then
+        ImGui.BeginTooltip()
+        ImGui.PushTextWrapPos(ImGui.GetFontSize() * 35.0)
+        ImGui.Text(desc)
+        ImGui.PopTextWrapPos()
+        ImGui.EndTooltip()
+    end
+end
+
 local function draw_combo_box(resultvar, options)
     if ImGui.BeginCombo('Chase Role', resultvar) then
         for _,j in ipairs(options) do
@@ -94,6 +104,7 @@ local function draw_combo_box(resultvar, options)
         end
         ImGui.EndCombo()
     end
+    helpMarker('Assign the group or raid role to chase')
     return resultvar
 end
 
@@ -111,16 +122,20 @@ local function chase_ui()
                 mq.cmd('/squelch /nav stop')
             end
         end
+        helpMarker('Pause or resume chasing')
         ImGui.PushItemWidth(100)
         ROLE = draw_combo_box(ROLE, ROLES)
         if ROLE == 'none' then
             CHASE = ImGui.InputText('Chase Target', CHASE)
+            helpMarker('Assign the PC spawn name to chase')
         end
         local tmp_distance = ImGui.InputInt('Chase Distance', DISTANCE)
+        helpMarker('Set the distance to begin chasing at. Min=15, Max=300')
         if validate_distance(tmp_distance) then
             DISTANCE = tmp_distance
         end
         tmp_distance = ImGui.InputInt('Stop Distance', STOP_DISTANCE)
+        helpMarker('Set the distance to stop chasing at. Min=0, Max='..(DISTANCE-1))
         ImGui.PopItemWidth()
         if validate_stop_distance(tmp_distance) then
             STOP_DISTANCE = tmp_distance
