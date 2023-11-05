@@ -11,16 +11,21 @@ Commands:
 - /luachase role -- displays the role to chase
 - /luachase distance 30 -- sets the chase distance to 30
 - /luachase distance -- prints the current chase distance
+- /luachase stopdistance 10 -- sets the stop distance to 10 (nav dist=# parameter)
+- /luachase stopdistance -- prints the current stop distance
 - /luachase show -- displays the UI window
 - /luachase hide -- hides the UI window
 - /luachase [help] -- displays the help output
 ]]--
 
 local mq = require('mq')
+require('ImGui')
 
+local PREFIX = '\aw[\agCHASE\aw] \ay'
 local PAUSED = false
 local CHASE = ''
 local DISTANCE = 30
+local STOP_DISTANCE = 10
 
 local open_gui = true
 local should_draw_gui = true
@@ -29,17 +34,19 @@ local ROLES = {[1]='none',none=1,[2]='ma',ma=1,[3]='mt',mt=1,[4]='leader',leader
 local ROLE = 'none'
 
 local function validate_distance(distance)
-    if distance < 15 or distance > 300 then return false end
-    return true
+    return distance >= 15 and distance <= 300
+end
+
+local function validate_stop_distance(distance)
+    return distance >= 0 and distance < DISTANCE
 end
 
 local function check_distance(x1, y1, x2, y2)
-    return math.sqrt((x2 - x1) ^ 2 + (y2 - y1) ^ 2)
+    return (x2 - x1) ^ 2 + (y2 - y1) ^ 2
 end
 
 local function validate_chase_role(role)
-    if not ROLES[role] then return false end
-    return true
+    return ROLES[role] ~= nil
 end
 
 local function get_spawn_for_role()
@@ -71,9 +78,9 @@ local function do_chase()
     local chase_x = chase_spawn.X()
     local chase_y = chase_spawn.Y()
     if not chase_x or not chase_y then return end
-    if check_distance(me_x, me_y, chase_x, chase_y) > DISTANCE then
+    if check_distance(me_x, me_y, chase_x, chase_y) > DISTANCE^2 then
         if not mq.TLO.Nav.Active() and mq.TLO.Navigation.PathExists(string.format('spawn pc =%s', chase_spawn.CleanName())) then
-            mq.cmdf('/nav spawn pc =%s | dist=10 log=off', chase_spawn.CleanName())
+            mq.cmdf('/nav spawn pc =%s | dist=%s log=off', chase_spawn.CleanName(), STOP_DISTANCE)
         end
     end
 end
@@ -106,11 +113,17 @@ local function chase_ui()
         end
         ImGui.PushItemWidth(100)
         ROLE = draw_combo_box(ROLE, ROLES)
-        CHASE = ImGui.InputText('Chase Target', CHASE)
+        if ROLE == 'none' then
+            CHASE = ImGui.InputText('Chase Target', CHASE)
+        end
         local tmp_distance = ImGui.InputInt('Chase Distance', DISTANCE)
-        ImGui.PopItemWidth()
         if validate_distance(tmp_distance) then
             DISTANCE = tmp_distance
+        end
+        tmp_distance = ImGui.InputInt('Stop Distance', STOP_DISTANCE)
+        ImGui.PopItemWidth()
+        if validate_stop_distance(tmp_distance) then
+            STOP_DISTANCE = tmp_distance
         end
     end
     ImGui.End()
@@ -118,8 +131,8 @@ end
 mq.imgui.init('Chase', chase_ui)
 
 local function print_help()
-    print('Lua Chase 1.0 -- Available Commands:')
-    print('\t/luachase role ma|mt|leader|raid1|raid2|raid3\n\t/luachase target\n\t/luachase name [pc_name_to_chase]\n\t/luachase distance [10,300]\n\t/luachase pause on|1|true\n\t/luachase pause off|0|false\n\t/luachase show\n\t/luachase hide')
+    print('\ayLua Chase 1.0 -- \awAvailable Commands:')
+    print('\ay\t/luachase role ma|mt|leader|raid1|raid2|raid3\n\t/luachase target\n\t/luachase name [pc_name_to_chase]\n\t/luachase distance [10,300]\n\t/luachase stopdistance [0,chase_distance-1]\n\t/luachase pause on|1|true\n\t/luachase pause off|0|false\n\t/luachase show\n\t/luachase hide')
 end
 
 local function bind_chase(...)
@@ -137,13 +150,13 @@ local function bind_chase(...)
         if value then
             CHASE = value
         else
-            print(string.format('Chase Target: %s', CHASE))
+            printf('%sChase Target: \aw%s', PREFIX, CHASE)
         end
     elseif key == 'role' then
         if value and validate_chase_role(value) then
             ROLE = value
         else
-            print(string.format('Chase Role: %s', ROLE))
+            printf('%sChase Role: \aw%s', PREFIX, ROLE)
         end
     elseif key == 'distance' then
         if tonumber(value) then
@@ -152,7 +165,16 @@ local function bind_chase(...)
                 DISTANCE = tmp_distance
             end
         else
-            print(string.format('Chase Target: %s', DISTANCE))
+            printf('%sChase Distance: \aw%s', PREFIX, DISTANCE)
+        end
+    elseif key == 'stopdistance' then
+        if tonumber(valid) then
+            local tmp_distance = tonumber(value)
+            if validate_stop_distance(tmp_distance) then
+                STOP_DISTANCE = tmp_distance
+            end
+        else
+            printf('%sStop Distance: \aw%s', PREFIX, STOP_DISTANCE)
         end
     elseif key == 'pause' then
         if value == 'on' or value == '1' or value == 'true' then
@@ -161,7 +183,7 @@ local function bind_chase(...)
         elseif value == 'off' or value == '0' or value == 'false' then
             PAUSED = false
         else
-            print(string.format('Chase Paused: %s', PAUSED))
+            printf('%sPaused: \aw%s', PREFIX, PAUSED)
         end
     elseif key == 'show' then
         open_gui = true
