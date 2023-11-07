@@ -1,5 +1,5 @@
 --[[
-chase.lua 1.0.2 -- aquietone
+chase.lua 1.1.0 -- aquietone
 
 Commands:
 - /luachase pause on|1|true -- pause chasing
@@ -16,6 +16,14 @@ Commands:
 - /luachase show -- displays the UI window
 - /luachase hide -- hides the UI window
 - /luachase [help] -- displays the help output
+
+TLO:
+${Chase}
+${Chase.Role}
+${Chase.Paused}
+${Chase.ChaseDistance}
+${Chase.StopDistance}
+${Chase.Target}
 ]]--
 
 local mq = require('mq')
@@ -32,6 +40,31 @@ local should_draw_gui = true
 
 local ROLES = {[1]='none',none=1,[2]='ma',ma=1,[3]='mt',mt=1,[4]='leader',leader=1,[5]='raid1',raid1=1,[6]='raid2',raid2=1,[7]='raid3',raid3=1}
 local ROLE = 'none'
+
+local function init_tlo()
+    local ChaseType
+
+    local function ChaseTLO(index)
+        return ChaseType, {}
+    end
+
+    local tlomembers = {
+        Paused = function() return 'bool', PAUSED end,
+        Role = function(val, index) return 'string', ROLE end,
+        Target = function(val, index) return 'string', CHASE end,
+        ChaseDistance = function(val, index) return 'int', DISTANCE end,
+        StopDistance = function(val, index) return 'int', STOP_DISTANCE end,
+    }
+
+    ChaseType = mq.DataType.new('ChaseType', {
+        Members = tlomembers
+    })
+    function ChaseType.ToString()
+        return ('Chase Running = %s'):format(not PAUSED)
+    end
+
+    mq.AddTopLevelObject('Chase', ChaseTLO)
+end
 
 local function validate_distance(distance)
     return distance >= 15 and distance <= 300
@@ -127,7 +160,7 @@ local function chase_ui()
         ROLE = draw_combo_box(ROLE, ROLES)
         if ROLE == 'none' then
             CHASE = ImGui.InputText('Chase Target', CHASE)
-            helpMarker('Assign the PC spawn name to chase')
+        helpMarker('Assign the PC spawn name to chase')
         end
         local tmp_distance = ImGui.InputInt('Chase Distance', DISTANCE)
         helpMarker('Set the distance to begin chasing at. Min=15, Max=300')
@@ -207,6 +240,7 @@ local function bind_chase(...)
     end
 end
 mq.bind('/luachase', bind_chase)
+init_tlo()
 
 local args = {...}
 if args[1] then
