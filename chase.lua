@@ -1,5 +1,5 @@
 --[[
-chase.lua 1.1.0 -- aquietone
+chase.lua 1.1.1 -- aquietone
 
 Commands:
 - /luachase pause on|1|true -- pause chasing
@@ -216,7 +216,7 @@ local function bind_chase(...)
             printf('%sChase Distance: \aw%s', PREFIX, DISTANCE)
         end
     elseif key == 'stopdistance' then
-        if tonumber(valid) then
+        if tonumber(value) then
             local tmp_distance = tonumber(value)
             if validate_stop_distance(tmp_distance) then
                 STOP_DISTANCE = tmp_distance
